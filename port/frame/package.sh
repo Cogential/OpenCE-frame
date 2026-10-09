@@ -1,6 +1,7 @@
 #!/bin/sh
 # Packages the Steam Frame build: port/frame/package.sh <halo> <halo_guest.elf> <libSDL3.so.0> <out.zip>
-# makes Halo_CE/ (run.sh, the host, the image, SDL3) and zips it. No game data goes in.
+# makes Halo_CE/ (run.sh, the host, the image, SDL3, and OpenVR's client library
+# for the right controller's aim when OPENVR_LIB names it) and zips it. No game data goes in.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 TOP="$HERE/../.."
@@ -14,6 +15,10 @@ cp "$TOP/port/assets/network/brokers.txt" "$OUT/"
 cp "$TOP/LICENSE.md" "$OUT/licenses/OpenCE-LICENSE.md"
 cp "$TOP/port/third_party/extract-xiso/LICENSE.TXT" "$OUT/licenses/extract-xiso-LICENSE.txt" 2>/dev/null || true
 [ -n "$SDL3_LICENSE" ] && cp "$SDL3_LICENSE" "$OUT/licenses/SDL3-LICENSE.txt"
+if [ -n "$OPENVR_LIB" ]; then
+	cp -L "$OPENVR_LIB" "$OUT/lib/libopenvr_api.so"
+	cp "$HERE/openvr/LICENSE" "$OUT/licenses/OpenVR-LICENSE.txt"
+fi
 chmod +x "$OUT/halo" "$OUT/run.sh"
 find "$OUT" \( -iname '*.map' -o -iname '*.iso' -o -iname '*.xiso' \) -delete
 rm -f "$ZIP"

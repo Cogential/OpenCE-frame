@@ -29,6 +29,7 @@ that runs here.
 */
 
 #include "host.h"
+#include "frame_gyro.h"
 #include "tomlc17.h"
 
 #include <SDL3/SDL.h>
@@ -337,8 +338,8 @@ static void *game_main(void *unused)
 
 int main(int argc, char *argv[])
 {
-	(void)argc;
-	(void)argv;
+	if (argc > 1 && strcmp(argv[1], "--gyro-probe") == 0)
+		return frame_gyro_probe();
 	host_logf(HOST_LOG_INFO, "Halo for the Steam Frame starting");
 	host_install_signal_handlers();
 	if (host_native_thread_create(game_main, NULL, MAIN_STACK_SIZE) != 0)

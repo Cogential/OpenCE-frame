@@ -16,6 +16,9 @@ so the audio callback is handed to a thread that has one.
 #include <SDL3/SDL.h>
 #include <pthread.h>
 #include <string.h>
+#ifdef HALO_FRAME
+#include "frame_gyro.h"
+#endif
 
 #define HANDLE_COUNT 256
 
@@ -85,7 +88,14 @@ static void *handle_get(uint32_t handle, int type)
 
 int host_sdl_init(uint32_t flags)
 {
-	return SDL_Init((SDL_InitFlags)flags);
+	int result = SDL_Init((SDL_InitFlags)flags);
+
+#ifdef HALO_FRAME
+	/* the right controller's aim (port/frame/frame_gyro.c) */
+	if (result && (flags & SDL_INIT_GAMEPAD))
+		frame_gyro_start();
+#endif
+	return result;
 }
 
 int host_sdl_set_hint(const char *name, const char *value)
@@ -178,7 +188,16 @@ int host_sdl_poll_event(void *event)
 	SDL_Event host_event;
 
 	if (!SDL_PollEvent(&host_event))
+	{
+#ifdef HALO_FRAME
+		if (frame_gyro_event(&host_event))
+		{
+			memcpy(event, &host_event, sizeof(host_event));
+			return 1;
+		}
+#endif
 		return 0;
+	}
 	/* the layouts agree except for the pointers of text, drop and user
 	events, which the guest does not read */
 	memcpy(event, &host_event, sizeof(host_event));
@@ -228,6 +247,10 @@ int host_sdl_gamepad_button(uint32_t gamepad, int button)
 {
 	SDL_Gamepad *object = handle_get(gamepad, _handle_gamepad);
 
+#ifdef HALO_FRAME
+	if (frame_gyro_hides_button(button))
+		return 0;
+#endif
 	return object ? SDL_GetGamepadButton(object, (SDL_GamepadButton)button) : 0;
 }
 

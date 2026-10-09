@@ -28,6 +28,9 @@ permissions:
 
 env:
   SDL_TAG: release-3.4.16
+  # OpenVR's client library, for the right controller's aim (port/frame/frame_gyro.c)
+  OPENVR_TAG: v2.15.6
+  OPENVR_SHA256: cc3671d24dd23fb61494e8a8327cf4fe7f638a60508ff7225984a03f2f5947e9
 
 jobs:
   guest:
@@ -93,9 +96,15 @@ jobs:
       - name: Build the host
         run: CC=clang SDL3_PREFIX="$RUNNER_TEMP/sdl3" port/frame/build.sh
 
+      - name: Get OpenVR
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/libopenvr_api.so" \
+            "https://raw.githubusercontent.com/ValveSoftware/openvr/$OPENVR_TAG/bin/linuxarm64/libopenvr_api.so"
+          echo "$OPENVR_SHA256  $RUNNER_TEMP/libopenvr_api.so" | sha256sum -c
+
       - name: Package
         run: |
-          SDL3_LICENSE="$RUNNER_TEMP/SDL3/LICENSE.txt" port/frame/package.sh build/frame/halo \
+          OPENVR_LIB="$RUNNER_TEMP/libopenvr_api.so" SDL3_LICENSE="$RUNNER_TEMP/SDL3/LICENSE.txt" port/frame/package.sh build/frame/halo \
             build/android/halo_guest.elf "$RUNNER_TEMP/sdl3/lib/libSDL3.so.0" "$PWD/halo-steam-frame-arm64.zip"
 
       - uses: actions/upload-artifact@v4

@@ -24,5 +24,21 @@ Files
 
 Controller look speed: Settings > (your profile) > Controls > Look Sensitivity.
 
+Aiming with the right controller (gyro)
+---------------------------------------
+Turning and tilting the right controller aims, on top of the right stick
+(SteamVR tracks the controller; the game reads it as a background SteamVR
+app and draws nothing in VR). It is on by default.
+
+  hold both sticks pressed in (half a second)   gyro on / off
+  hold View, press Y                            faster
+  hold View, press A                            slower
+
+Each gives a rumble: a long one for on, a short one for off, a long one at
+the fastest or slowest speed. The setting is kept in
+~/.local/share/halo-ce/gyro.txt ("enabled 1", "speed 1.50": 1 turns the view
+as far as the controller turns). HALO_GYRO=0 in run.sh turns it off for good.
+Lines starting "gyro:" in launch.log say whether SteamVR was reached.
+
 This build does not update itself; get new releases from the GitHub page
 (or Frametanium).

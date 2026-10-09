@@ -11,8 +11,8 @@ cd "$(dirname "$0")/../.."
 : "${CC:=clang}"
 : "${OUT:=build/frame}"
 TARGET="--target=aarch64-linux-gnu ${SYSROOT:+--sysroot=$SYSROOT}"
-CFLAGS="-O2 -g -fPIC -Wall -Wno-unused-function -D_GNU_SOURCE -include port/frame/frame_shim.h
-	-Iport/frame/shim -Iport/android/include -Iport/android/host -I$SDL3_PREFIX/include
+CFLAGS="-O2 -g -fPIC -Wall -Wno-unused-function -D_GNU_SOURCE -DHALO_FRAME -include port/frame/frame_shim.h
+	-Iport/frame -Iport/frame/shim -Iport/android/include -Iport/android/host -I$SDL3_PREFIX/include
 	-Iport/linux/src -Iport/third_party/tomlc17"
 UPNP="-Iport/third_party/miniupnpc/include -Iport/third_party/miniupnpc/src -DMINIUPNP_STATICLIB
 	-DMINIUPNPC_SET_SOCKET_TIMEOUT -DMINIUPNPC_GET_SRC_ADDR -D_BSD_SOURCE -D_DEFAULT_SOURCE"
@@ -28,6 +28,7 @@ for f in port/android/host/*.c; do
 	compile "$f" "$(basename "$f" .c)"
 done
 compile port/frame/host_main_linux.c host_main_linux
+compile port/frame/frame_gyro.c frame_gyro
 compile build/android/host/host_import_table.c host_import_table
 compile port/linux/src/posix_files.c posix_files
 compile port/linux/src/posix_net.c posix_net
