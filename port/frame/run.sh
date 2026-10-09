@@ -13,6 +13,10 @@ if [ ! -f "$HALO_DATA_ROOT/maps/ui.map" ]; then
         python3 ./extract_maps.py "$iso" "$HALO_DATA_ROOT" >> "$HALO_DATA_ROOT/launch.log" 2>&1 && break
     done
 fi
+# Steam's virtual gamepad is an Xbox 360 pad, but Steam tells SDL3 it is the
+# "Steam Frame Controllers" (28de:11e0), which SDL3 has no mapping for: most
+# buttons and the sticks then read wrong. Without the hint it is a 360 pad.
+unset SteamVirtualGamepadInfo
 export LD_LIBRARY_PATH="$PWD/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 { echo "== $(date)"; } >> "$HALO_DATA_ROOT/launch.log"
 exec ./halo "$@" >> "$HALO_DATA_ROOT/launch.log" 2>&1
