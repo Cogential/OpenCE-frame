@@ -1,3 +1,9 @@
+> **Steam Frame fork.** This fork adds a native ARM64 Linux build for the Steam Frame
+> (`port/frame`, branch `steam-frame`; releases are tagged `frame-v*`). It runs the
+> Android port's game image in a small Linux host. See
+> [port/frame/README-frame.txt](port/frame/README-frame.txt). Everything else is
+> upstream [OpenCommunityEdition/OpenCE](https://github.com/OpenCommunityEdition/OpenCE).
+
 # Halo: Combat Evolved for Linux, Windows and Android
 
 [![Join our Discord](https://invidget.switchblade.xyz/9gqcHyr5km)](https://discord.gg/9gqcHyr5km)

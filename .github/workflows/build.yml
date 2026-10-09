@@ -21,6 +21,8 @@ name: Build
 # gives the latest build; the last five are kept.
 on:
   push:
+    # (the Steam Frame fork builds its branch with steam-frame.yml only)
+    branches-ignore: [steam-frame]
     paths-ignore:
       - "**.md"
   workflow_dispatch:
