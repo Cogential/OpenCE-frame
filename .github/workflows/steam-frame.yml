@@ -1,0 +1,114 @@
+name: Steam Frame
+
+# The Steam Frame (ARM64 Linux) build, port/frame:
+# 1. guest: the Android port's game image (halo_guest.elf, ILP32 AArch64), on
+#    x86-64, where the runner has the Android NDK. clang 22 from apt.llvm.org
+#    compiles it, so the profiles in pgo/ apply.
+# 2. frame: SDL3 and the Linux host (port/frame/build.sh) on an ARM64 runner
+#    (Ubuntu 24.04: glibc 2.39, as SteamOS on the Frame), then the zip.
+# A tag frame-v* (or a manual run with release_tag) publishes a pre-release.
+on:
+  push:
+    branches: [steam-frame]
+    tags: ["frame-v*"]
+    paths-ignore: ["**.md"]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a pre-release with this tag (e.g. frame-v0.1.0); empty builds only"
+        required: false
+        default: ""
+
+concurrency:
+  group: steam-frame-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  SDL_TAG: release-3.4.16
+
+jobs:
+  guest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q ninja-build
+          curl -fsSL https://apt.llvm.org/llvm.sh -o llvm.sh
+          sudo bash llvm.sh 22
+          clang-22 --version
+
+      - uses: actions/cache@v4
+        with:
+          path: build/android/third_party
+          key: frame-guest-third-party-${{ hashFiles('tools/android_build.py', 'port/android/patches/**') }}
+
+      - name: Build the game image
+        run: |
+          python3 configure.py --release --android-ndk "$ANDROID_NDK_LATEST_HOME" --android-guest-cc clang-22
+          ninja build/android/halo_guest.elf build/android/host/host_import_table.c
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: guest
+          path: |
+            build/android/halo_guest.elf
+            build/android/host/host_import_table.c
+          retention-days: 3
+
+  frame:
+    needs: guest
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the toolchain and SDL3's dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang lld ninja-build cmake zip libgles-dev libegl-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev \
+            libxkbcommon-dev libwayland-dev wayland-protocols libdecor-0-dev libdrm-dev libgbm-dev \
+            libpulse-dev libasound2-dev libpipewire-0.3-dev libudev-dev libdbus-1-dev
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: guest
+          path: build/android
+
+      - name: Build SDL3
+        run: |
+          git clone -q --depth 1 --branch "$SDL_TAG" https://github.com/libsdl-org/SDL.git "$RUNNER_TEMP/SDL3"
+          cmake -S "$RUNNER_TEMP/SDL3" -B "$RUNNER_TEMP/sdl3-build" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/sdl3" -DSDL_SHARED=ON -DSDL_STATIC=OFF \
+            -DSDL_TESTS=OFF -DSDL_TEST_LIBRARY=OFF -DSDL_EXAMPLES=OFF -DSDL_X11_XTEST=OFF
+          ninja -C "$RUNNER_TEMP/sdl3-build" install
+
+      - name: Build the host
+        run: CC=clang SDL3_PREFIX="$RUNNER_TEMP/sdl3" port/frame/build.sh
+
+      - name: Package
+        run: |
+          SDL3_LICENSE="$RUNNER_TEMP/SDL3/LICENSE.txt" port/frame/package.sh build/frame/halo \
+            build/android/halo_guest.elf "$RUNNER_TEMP/sdl3/lib/libSDL3.so.0" "$PWD/halo-steam-frame-arm64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: halo-steam-frame-arm64
+          path: halo-steam-frame-arm64.zip
+          retention-days: 7
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/frame-v') || inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag }}
+        run: |
+          gh release create "$TAG" halo-steam-frame-arm64.zip --prerelease --target "$GITHUB_SHA" \
+            --title "Steam Frame $TAG" --notes-file port/frame/RELEASE_NOTES.md
