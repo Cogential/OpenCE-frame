@@ -20,6 +20,9 @@ void *host_gl_resolve(const char *name)
 
 	if (!library)
 		library = dlopen("libGLESv3.so", RTLD_NOW | RTLD_GLOBAL);
+	/* (desktop Linux, the Steam Frame port: GLES 3 is in libGLESv2) */
+	if (!library)
+		library = dlopen("libGLESv2.so.2", RTLD_NOW | RTLD_GLOBAL);
 	if (library)
 		function = dlsym(library, name);
 	if (!function)
